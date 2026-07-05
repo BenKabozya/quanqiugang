@@ -179,3 +179,21 @@ model ServiceComment {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 }
+
+// ==================== SITE-WIDE SETTINGS / FOOTER ====================
+model SiteSettings {
+  id              String   @id @default("main")
+  address         String?
+  mapEmbedUrl     String?
+  officePhoto1    String?
+  officePhoto2    String?
+  whatsappNumber  String?
+  whatsappGroupUrl String?
+  wechatQrUrl     String?
+  email           String?
+  youtubeUrl      String?
+  tiktokUrl       String?
+  instagramUrl    String?
+  facebookUrl     String?
+  updatedAt       DateTime @updatedAt
+}
