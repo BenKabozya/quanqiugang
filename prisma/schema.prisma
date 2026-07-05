@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ADMIN ====================
+model Admin {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+
+  activities  Activity[]
+  services    Service[]
+  chatReplies ChatMessage[] @relation("AdminMessages")
+  quotationResponses Quotation[] @relation("AdminQuotations")
+  shipmentUpdates Shipment[] @relation("AdminShipments")
+}
+
+// ==================== USER ====================
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  country   String
+  password  String
+  createdAt DateTime @default(now())
+
+  comments    Comment[]
+  serviceComments ServiceComment[]
+  quotations  Quotation[]
+  chatMessages ChatMessage[] @relation("UserMessages")
+  shipments   Shipment[]
+}
+
+// ==================== ACTIVITY FEED ====================
+model Activity {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  imageUrl    String?
+  videoUrl    String?
+  mediaCaption String?@db.Text
+  eventDate   DateTime
+  createdAt   DateTime @default(now())
+
+  adminId String
+  admin   Admin  @relation(fields: [adminId], references: [id])
+
+  comments Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+// ==================== QUOTATION ====================
+model Quotation {
+  id          String   @id @default(cuid())
+  productName String
+  quantity    String
+  budget      String?
+  details     String   @db.Text
+  attachmentUrl String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  respondedById String?
+  respondedBy   Admin?  @relation("AdminQuotations", fields: [respondedById], references: [id])
+}
+
+// ==================== SHIPMENT TRACKING ====================
+model Shipment {
+  id            String   @id @default(cuid())
+  trackingCode  String   @unique
+  status        String   @default("processing") // processing | purchased | shipped | in_transit | arrived | delivered
+  origin        String?
+  destination   String?
+  notes         String?  @db.Text
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  updatedById String?
+  updatedBy   Admin?  @relation("AdminShipments", fields: [updatedById], references: [id])
+}
+
+// ==================== CHAT ====================
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String?  @db.Text
+  fileUrl   String?
+  fileType  String?  // image | video | audio | file
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation("UserMessages", fields: [userId], references: [id])
+
+  adminId String?
+  admin   Admin?  @relation("AdminMessages", fields: [adminId], references: [id])
+
+  senderType String // "user" or "admin"
+}
+
+// ==================== NOTIFICATIONS ====================
+model Notification {
+  id        String   @id @default(cuid())
+  recipientType String // "user" or "admin"
+  recipientId   String? // userId if recipientType=user; null means "all admins" when recipientType=admin
+  type      String   // "message" | "quotation" | "registration" | "shipment"
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ==================== EDITABLE PAGE SECTIONS ====================
+model PageSection {
+  id          String   @id @default(cuid())
+  key         String   @unique // "sourcing" | "purchasing" | "about"
+  title       String
+  body        String   @db.Text
+  imageUrl    String?
+  videoUrl    String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== SERVICES ====================
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  imageUrl    String?
+  videoUrl    String?
+  mediaCaption String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  adminId String
+  admin   Admin  @relation(fields: [adminId], references: [id])
+
+  comments ServiceComment[]
+}
+
+model ServiceComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
